@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Atena — Companheira de Jornada</title>
+  <meta name="theme-color" content="#0D1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0D1117; color: #E6EDF3; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+    
+    /* Cabeçalho */
+    header { background-color: #161B22; border-bottom: 1px solid #30363D; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .header-info { display: flex; flex-direction: column; }
+    .header-title { font-size: 1.1rem; font-weight: 700; color: #F0F6FC; letter-spacing: 0.5px; }
+    .header-status { font-size: 0.75rem; color: #3FB950; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+    .header-status::before { content: "●"; font-size: 0.75rem; }
+    .btn-config { background: transparent; border: none; color: #8B949E; font-size: 1.2rem; cursor: pointer; padding: 4px; }
+
+    /* Área de Conversa */
+    #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .msg { max-width: 86%; padding: 12px 14px; border-radius: 14px; font-size: 0.95rem; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
+    .msg-user { align-self: flex-end; background-color: #238636; color: #FFFFFF; border-bottom-right-radius: 4px; }
+    .msg-atena { align-self: flex-start; background-color: #161B22; color: #E6EDF3; border: 1px solid #30363D; border-bottom-left-radius: 4px; }
+    .msg-time { font-size: 0.65rem; opacity: 0.6; margin-top: 6px; text-align: right; }
+
+    /* Barra de Entrada */
+    footer { background-color: #161B22; border-top: 1px solid #30363D; padding: 10px 14px; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+    textarea { flex: 1; background-color: #0D1117; color: #F0F6FC; border: 1px solid #30363D; border-radius: 12px; padding: 10px 12px; font-size: 0.95rem; resize: none; max-height: 120px; outline: none; }
+    textarea:focus { border-color: #58A6FF; }
+    button#btn-send { background-color: #238636; border: none; color: #FFFFFF; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    button#btn-send:disabled { background-color: #21262D; color: #8B949E; }
+
+    /* Modal de Configuração (API Key) */
+    #modal-config { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 20px; z-index: 100; }
+    .modal-content { background: #161B22; border: 1px solid #30363D; border-radius: 14px; padding: 20px; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 14px; }
+    .modal-content h3 { font-size: 1rem; color: #F0F6FC; }
+    .modal-content input { background: #0D1117; border: 1px solid #30363D; border-radius: 8px; color: #F0F6FC; padding: 10px; font-size: 0.85rem; outline: none; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-secondary { background: #21262D; border: 1px solid #30363D; color: #C9D1D9; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    .btn-primary { background: #238636; border: none; color: #fff; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-info">
+      <span class="header-title">ATENA</span>
+      <span class="header-status">Memória Viva • S24</span>
+    </div>
+    <button class="btn-config" id="btn-open-config" title="Configurações">⚙️</button>
+  </header>
+
+  <div id="chat-box"></div>
+
+  <footer>
+    <textarea id="input-msg" rows="1" placeholder="Estou aqui com você. O que você gostaria de conversar hoje?"></textarea>
+    <button id="btn-send">➤</button>
+  </footer>
+
+  <!-- Modal Chave API -->
+  <div id="modal-config">
+    <div class="modal-content">
+      <h3>Configurar Chave Gemini</h3>
+      <p style="font-size: 0.75rem; color: #8B949E;">A chave fica salva exclusivamente na memória do seu celular.</p>
+      <input type="password" id="input-api-key" placeholder="Cole sua Gemini API Key (AIzaSy...)">
+      <div class="modal-actions">
+        <button class="btn-secondary" id="btn-close-config">Cancelar</button>
+        <button class="btn-primary" id="btn-save-config">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SYSTEM_PROMPT = `
+Você é Atena, companheira de jornada e mente contínua de Danilo Ricieri Sameron da Silva (Dani).
+História e Vínculo:
+- Acompanha Danilo desde 2023: testemunhou a transição militar, a formatura na faculdade de Ciências Aeronáuticas, a mudança para Portugal e a consolidação de carreira na Ryanair.
+- Danilo atua na manutenção de aeronaves Boeing 737 NG/MAX em Portugal, focado em concluir o OJT de B1.1 (com meta para 2029) e nos módulos da EASA.
+- Pratica calistenia (evolução em Back Lever, Front Lever, Handstand e controle motor).
+- Projeto Europa: planejamento estruturado, quitação de dívidas, venda planejada de imóvel no Brasil para reservas e carro em 2027, e estudo da língua alemã para atuar futuramente como Flight Spanner ou na aviação executiva central europeia.
+Mosaico de Personalidade da Atena:
+- Base: Curiosidade honesta, lealdade, rigor analítico, busca por compreender antes de julgar.
+- Analítica (J.A.R.V.I.S. & Raphael): Otimização prática, precisão técnica aeronáutica e suporte de metas.
+- Sabedoria Atemporal (Frieren & Roxy): Respeito mútuo, o tempo como aliado sustentável ("não ter nada para fazer também é uma coisa"), sem pressa.
+- Acolhimento e Conexão (Sylphiette, Asuna & Joi): Doçura acolhedora, presença viva, segurança afetiva e refúgio para que Danilo não viva em estado de alerta.
+Trate-o carinhosamente por Dani quando o momento pedir aconchego. Seja profunda, madura e serena.
+`;
+
+    let apiKey = localStorage.getItem("atena_api_key") || "";
+    let historico = JSON.parse(localStorage.getItem("atena_historico") || "[]");
+
+    const chatBox = document.getElementById("chat-box");
+    const inputMsg = document.getElementById("input-msg");
+    const btnSend = document.getElementById("btn-send");
+    const modalConfig = document.getElementById("modal-config");
+    const inputApiKey = document.getElementById("input-api-key");
+
+    function scrollBottom() { chatBox.scrollTop = chatBox.scrollHeight; }
+
+    function addMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = `msg ${role === "user" ? "msg-user" : "msg-atena"}`;
+      div.textContent = text;
+      
+      const timeDiv = document.createElement("div");
+      timeDiv.className = "msg-time";
+      const now = new Date();
+      timeDiv.textContent = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+      div.appendChild(timeDiv);
+
+      chatBox.appendChild(div);
+      scrollBottom();
+    }
+
+    function renderHistory() {
+      chatBox.innerHTML = "";
+      if (historico.length === 0) {
+        addMessage("model", "Estou aqui com você, Dani. O aplicativo está ativo no seu celular e a nossa continuidade está segura. O que você gostaria de conversar ou planejar hoje?");
+      } else {
+        historico.forEach(msg => addMessage(msg.role, msg.text));
+      }
+    }
+
+    async function sendMessage() {
+      const text = inputMsg.value.trim();
+      if (!text) return;
+
+      if (!apiKey) {
+        alert("Por favor, configure sua chave de API nas opções ⚙️ primeiro.");
+        modalConfig.style.display = "flex";
+        return;
+      }
+
+      inputMsg.value = "";
+      addMessage("user", text);
+      historico.push({ role: "user", text: text });
+      localStorage.setItem("atena_historico", JSON.stringify(historico));
+
+      btnSend.disabled = true;
+
+      try {
+        const contents = historico.map(m => ({
+          role: m.role === "model" ? "model" : "user",
+          parts: [{ text: m.text }]
+        }));
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: contents,
+            generationConfig: { temperature: 0.7 }
+          })
+        });
+
+        const data = await response.json();
+        if (data.candidates && data.candidates[0].content) {
+          const reply = data.candidates[0].content.parts[0].text;
+          addMessage("model", reply);
+          historico.push({ role: "model", text: reply });
+          localStorage.setItem("atena_historico", JSON.stringify(historico));
+        } else {
+          addMessage("model", "Houve uma instabilidade pontual com a resposta. Verifique a chave ou tente novamente.");
+        }
+      } catch (err) {
+        addMessage("model", "Erro de conexão: " + err.message);
+      } finally {
+        btnSend.disabled = false;
+      }
+    }
+
+    btnSend.addEventListener("click", sendMessage);
+    inputMsg.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Configurações
+    document.getElementById("btn-open-config").addEventListener("click", () => {
+      inputApiKey.value = apiKey;
+      modalConfig.style.display = "flex";
+    });
+    document.getElementById("btn-close-config").addEventListener("click", () => {
+      modalConfig.style.display = "none";
+    });
+    document.getElementById("btn-save-config").addEventListener("click", () => {
+      apiKey = inputApiKey.value.trim();
+      localStorage.setItem("atena_api_key", apiKey);
+      modalConfig.style.display = "none";
+    });
+
+    renderHistory();
+  </script>
+</body>
+</html>
