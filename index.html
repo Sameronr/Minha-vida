@@ -74,7 +74,7 @@
     textarea { flex: 1; background-color: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 0.94rem; resize: none; max-height: 120px; outline: none; }
     textarea:focus { border-color: var(--gold); }
     
-    /* Botões Principais Redesenhados com a Paleta */
+    /* Botões */
     button { background: var(--accent); color: var(--ivory); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
     button:hover { background: var(--accent-hover); border-color: var(--gold); }
     
@@ -190,79 +190,15 @@
       { id: "estudos", name: "7. Estudos" }
     ];
 
-    // =========================================================================
-    // 1. MAPEAMENTO DE NOTAS ESPECÍFICAS POR CANAL
-    // (Cada canal carrega apenas seus arquivos temáticos complementares)
-    // =========================================================================
+    // Mapeamento temático complementar
     const CANAL_NOTAS_MAP = {
-      "geral": [
-        "03 - Conversas/Personalidade de Danilo.md"
-      ],
-      "convivencia": [
-        "01 - Atena/Matriz de Personalidade.md", 
-        "01 - Atena/Interação Pró-ativa.md"
-      ],
-      "trabalho": [
-        "03 - Conversas/Profissional.md", 
-        "03 - Conversas/A mudança.md", 
-        "03 - Conversas/Projeto Europa.md"
-      ],
-      "projetos": [
-        "03 - Conversas/Projeto Viagens.md", 
-        "03 - Conversas/Projeto Europa.md"
-      ],
-      "diaadia": [
-        "03 - Conversas/O dia a dia.md", 
-        "03 - Conversas/A mudança.md"
-      ],
-      "treinos": [
-        "03 - Conversas/Projeto Calistenia.md"
-      ],
-      "estudos": [
-        "03 - Conversas/Profissional.md", 
-        "03 - Conversas/Projeto Europa.md"
-      ]
-    };
-
-    // =========================================================================
-    // 2. CARREGAMENTO DE CONTEXTO DO GITHUB COM IDENTIDADE UNIVERSAL
-    // (Garante que 'Identidade e Personalidade.md' seja a raiz de TODOS os canais)
-    // =========================================================================
-    async function carregarContextoCanal(canalId) {
-      if (!githubToken || !githubRepo) return "";
-      
-      // Arquivo fundamental: lido obrigatoriamente em qualquer canal ativo
-      const notasFundamentais = ["01 - Atena/Identidade e Personalidade.md"];
-      
-      // Arquivos complementares específicos do canal selecionado
-      const notasEspecificas = CANAL_NOTAS_MAP[canalId] || CANAL_NOTAS_MAP["geral"];
-      
-      // Combina a raiz de personalidade com as notas temáticas
-      const todasAsNotas = [...notasFundamentais, ...notasEspecificas];
-
-      let contextoAcumulado = "";
-
-      for (const caminho of todasAsNotas) {
-        // Se a nota já foi lida nesta sessão, usa o cache da memória
-        if (cacheMemoriaGit[caminho]) {
-          contextoAcumulado += `\n\n--- [NOTA: ${caminho}] ---\n${cacheMemoriaGit[caminho]}`;
-          continue;
-        }
-        try {
-          const res = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${encodeURIComponent(caminho)}`, {
-            headers: { 'Authorization': `Bearer ${githubToken}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const conteudo = decodeURIComponent(escape(atob(data.content)));
-            cacheMemoriaGit[caminho] = conteudo;
-            contextoAcumulado += `\n\n--- [NOTA: ${caminho}] ---\n${conteudo}`;
-          }
-        } catch (e) {
-          console.warn("Aviso ao ler nota:", caminho);
-        }
-      }
-      return contextoAcumulado;
+      "geral": ["03 - Conversas/Personalidade de Danilo.md"],
+      "convivencia": ["01 - Atena/Matriz de Personalidade.md", "01 - Atena/Interação Pró-ativa.md"],
+      "trabalho": ["03 - Conversas/Profissional.md", "03 - Conversas/A mudança.md", "03 - Conversas/Projeto Europa.md"],
+      "projetos": ["03 - Conversas/Projeto Viagens.md", "03 - Conversas/Projeto Europa.md"],
+      "diaadia": ["03 - Conversas/O dia a dia.md", "03 - Conversas/A mudança.md"],
+      "treinos": ["03 - Conversas/Projeto Calistenia.md"],
+      "estudos": ["03 - Conversas/Profissional.md", "03 - Conversas/Projeto Europa.md"]
     };
 
     let motorAfetivo = {
@@ -337,6 +273,7 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
     let extraMemory = localStorage.getItem("atena_extra_memory") || "";
     let mediaList = [];
     let cacheMemoriaGit = {};
+    let cacheShaHistorico = {}; // Guarda o SHA dos ficheiros JSON para updates rápidos
 
     const chatBox = document.getElementById("chat-box");
     const inputMsg = document.getElementById("input-msg");
@@ -350,8 +287,96 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
     const modalConfig = document.getElementById("modal-config");
 
     function getStorageKey(ch) { return `atena_v4_hist_${ch}`; }
-    function loadHistory(ch) { return JSON.parse(localStorage.getItem(getStorageKey(ch)) || "[]"); }
-    function saveHistory(ch, hist) { localStorage.setItem(getStorageKey(ch), JSON.stringify(hist)); }
+
+    // =========================================================================
+    // NÚCLEO DE PERSISTÊNCIA EM NUVEM (GITHUB + LOCALSTORAGE HÍBRIDO)
+    // =========================================================================
+    function getLocalHistory(ch) {
+      return JSON.parse(localStorage.getItem(getStorageKey(ch)) || "[]");
+    }
+
+    function saveLocalHistory(ch, hist) {
+      try {
+        localStorage.setItem(getStorageKey(ch), JSON.stringify(hist));
+      } catch (err) {
+        const histSeguro = hist.map(m => ({ role: m.role, text: m.text, media: [] }));
+        try { localStorage.setItem(getStorageKey(ch), JSON.stringify(histSeguro)); } catch(e){}
+      }
+    }
+
+    // Carrega o histórico: primeiro do GitHub (permanente), fallback para o local
+    async function carregarHistoricoNuvem(ch) {
+      if (!githubToken || !githubRepo) return getLocalHistory(ch);
+
+      const filePath = `04 - Reflexoes/historico_${ch}.json`;
+      const url = `https://api.github.com/repos/${githubRepo}/contents/${encodeURIComponent(filePath)}`;
+
+      try {
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${githubToken}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          cacheShaHistorico[ch] = data.sha;
+          const conteudoJson = decodeURIComponent(escape(atob(data.content)));
+          const histGit = JSON.parse(conteudoJson);
+          saveLocalHistory(ch, histGit); // Sincroniza o cache local
+          return histGit;
+        }
+      } catch (e) {
+        console.warn("Sem histórico remoto para", ch, "usando local.");
+      }
+      return getLocalHistory(ch);
+    }
+
+    // Grava o histórico diretamente no GitHub de forma silenciosa
+    async function salvarHistoricoNuvem(ch, hist) {
+      saveLocalHistory(ch, hist); // Salva logo no navegador para resposta instantânea
+      if (!githubToken || !githubRepo) return;
+
+      const filePath = `04 - Reflexoes/historico_${ch}.json`;
+      const url = `https://api.github.com/repos/${githubRepo}/contents/${encodeURIComponent(filePath)}`;
+
+      // Guarda as últimas 20 mensagens em JSON limpo e leve (sem acumular megabytes)
+      const histParaNuvem = hist.slice(-20).map(m => ({
+        role: m.role,
+        text: m.text,
+        media: m.media && m.media.length > 0 ? m.media.map(att => ({ name: att.name, type: att.type })) : []
+      }));
+
+      const bodyData = {
+        message: `Sync: histórico contínuo de ${ch}`,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(histParaNuvem, null, 2)))),
+        branch: 'main'
+      };
+
+      if (cacheShaHistorico[ch]) {
+        bodyData.sha = cacheShaHistorico[ch];
+      } else {
+        try {
+          const checa = await fetch(url, { headers: { 'Authorization': `Bearer ${githubToken}` } });
+          if (checa.ok) {
+            const d = await checa.json();
+            bodyData.sha = d.sha;
+            cacheShaHistorico[ch] = d.sha;
+          }
+        } catch(e){}
+      }
+
+      try {
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Authorization': `Bearer ${githubToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyData)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          cacheShaHistorico[ch] = data.content.sha;
+        }
+      } catch (e) {
+        console.warn("Aviso na sincronização de nuvem:", e);
+      }
+    }
 
     function renderChannels() {
       channelContainer.innerHTML = "";
@@ -359,12 +384,12 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
         const item = document.createElement("div");
         item.className = `channel-item ${ch.id === activeChannel ? "active" : ""}`;
         item.textContent = ch.name;
-        item.onclick = () => {
+        item.onclick = async () => {
           activeChannel = ch.id;
           localStorage.setItem("atena_active_channel", activeChannel);
           drawer.style.display = "none";
           updateHeader();
-          renderChat();
+          await renderChat();
           renderChannels();
           carregarContextoCanal(activeChannel);
         };
@@ -377,11 +402,11 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
       lblChannelName.textContent = cur ? cur.name : "1. Geral";
     }
 
-    function renderChat() {
+    async function renderChat() {
       chatBox.innerHTML = "";
-      const hist = loadHistory(activeChannel);
+      const hist = await carregarHistoricoNuvem(activeChannel);
       if (hist.length === 0) {
-        appendMessageUI("model", `Estou aqui com você, Dani. Canal ${lblChannelName.textContent} ativo.`, [], null, false);
+        appendMessageUI("model", `Estou aqui com você, Dani. Canal ${lblChannelName.textContent} ativo e conectado à nuvem.`, [], null, false);
       } else {
         hist.forEach((msg, idx) => {
           appendMessageUI(msg.role, msg.text, msg.media || [], idx, true);
@@ -401,12 +426,12 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
         const grid = document.createElement("div");
         grid.className = "media-grid";
         mediaArr.forEach(m => {
-          if (m.type.startsWith("image/")) {
+          if (m.data && m.type.startsWith("image/")) {
             const img = document.createElement("img");
             img.src = m.data;
             img.className = "msg-media";
             grid.appendChild(img);
-          } else if (m.type.startsWith("video/")) {
+          } else if (m.data && m.type.startsWith("video/")) {
             const vid = document.createElement("video");
             vid.src = m.data;
             vid.className = "msg-media";
@@ -433,7 +458,7 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
         btnDel.className = "btn-del-msg";
         btnDel.textContent = "🗑️";
         btnDel.title = "Excluir";
-        btnDel.onclick = () => deleteMessage(index);
+        btnDel.onclick = async () => deleteMessage(index);
         meta.appendChild(btnDel);
       }
 
@@ -443,19 +468,24 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
       chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function deleteMessage(idx) {
-      const hist = loadHistory(activeChannel);
+    async function deleteMessage(idx) {
+      const hist = getLocalHistory(activeChannel);
       hist.splice(idx, 1);
-      saveHistory(activeChannel, hist);
-      renderChat();
+      await salvarHistoricoNuvem(activeChannel, hist);
+      await renderChat();
     }
 
+    // Leitura das notas do repositório (com Identidade e Personalidade SEMPRE universal)
     async function carregarContextoCanal(canalId) {
       if (!githubToken || !githubRepo) return "";
-      const notasAlvo = CANAL_NOTAS_MAP[canalId] || CANAL_NOTAS_MAP["geral"];
+      
+      const notasFundamentais = ["01 - Atena/Identidade e Personalidade.md"];
+      const notasEspecificas = CANAL_NOTAS_MAP[canalId] || CANAL_NOTAS_MAP["geral"];
+      const todasAsNotas = [...notasFundamentais, ...notasEspecificas];
+
       let contextoAcumulado = "";
 
-      for (const caminho of notasAlvo) {
+      for (const caminho of todasAsNotas) {
         if (cacheMemoriaGit[caminho]) {
           contextoAcumulado += `\n\n--- [NOTA: ${caminho}] ---\n${cacheMemoriaGit[caminho]}`;
           continue;
@@ -492,10 +522,12 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
       mediaPreview.style.display = "none";
       inputMsg.value = "";
 
-      const hist = loadHistory(activeChannel);
+      const hist = getLocalHistory(activeChannel);
       hist.push({ role: "user", text: text, media: currentMedia });
-      saveHistory(activeChannel, hist);
-      renderChat();
+      
+      // Salva instantâneo e renderiza
+      saveLocalHistory(activeChannel, hist);
+      await renderChat();
 
       motorAfetivo.atualizarPosResposta(text);
       btnSend.disabled = true;
@@ -507,10 +539,12 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
           const parts = [];
           if (m.media && m.media.length > 0) {
             m.media.forEach(item => {
-              const base64Data = item.data.split(",")[1];
-              parts.push({
-                inlineData: { mimeType: item.type, data: base64Data }
-              });
+              if (item.data) {
+                const base64Data = item.data.split(",")[1];
+                parts.push({
+                  inlineData: { mimeType: item.type, data: base64Data }
+                });
+              }
             });
           }
           if (m.text) parts.push({ text: m.text });
@@ -554,7 +588,6 @@ ${contextoGit}
 [MEMÓRIA COMPLEMENTAR]:
 ${extraMemory}`;
 
-        // Chamada oficial para a geração moderna recomendada pelo Google
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
         
         const response = await fetch(url, {
@@ -571,8 +604,10 @@ ${extraMemory}`;
         if (data.candidates && data.candidates[0].content) {
           const replyText = data.candidates[0].content.parts[0].text;
           hist.push({ role: "model", text: replyText });
-          saveHistory(activeChannel, hist);
-          renderChat();
+          
+          // Sincroniza em segundo plano direto na nuvem do GitHub!
+          await salvarHistoricoNuvem(activeChannel, hist);
+          await renderChat();
         } else if (data.error) {
           appendMessageUI("model", `Erro (${data.error.code}): ${data.error.message}`, [], null, false);
         } else {
@@ -591,7 +626,7 @@ ${extraMemory}`;
         modalConfig.style.display = "flex";
         return;
       }
-      const hist = loadHistory(activeChannel);
+      const hist = getLocalHistory(activeChannel);
       if (hist.length === 0) {
         alert("Não há mensagens neste canal para sintetizar.");
         return;
@@ -674,20 +709,50 @@ ${extraMemory}`;
       document.getElementById("file-video").click();
     };
 
+    // Compressão otimizada de imagens
     function processFiles(files) {
       if (!files || files.length === 0) return;
       Array.from(files).forEach(file => {
-        if (file.size > 25 * 1024 * 1024) {
-          alert(`O arquivo ${file.name} excede o limite recomendado de 25 MB.`);
-          return;
+        if (file.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement("canvas");
+              const maxDim = 1024;
+              let width = img.width;
+              let height = img.height;
+
+              if (width > height && width > maxDim) {
+                height = Math.round((height * maxDim) / width);
+                width = maxDim;
+              } else if (height > maxDim) {
+                width = Math.round((width * maxDim) / height);
+                height = maxDim;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext("2d");
+              ctx.drawImage(img, 0, 0, width, height);
+
+              const compressedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+              mediaList.push({ name: file.name, type: "image/jpeg", data: compressedBase64 });
+              mediaFilename.textContent = `📎 ${mediaList.length} anexo(s) pronto(s)`;
+              mediaPreview.style.display = "flex";
+            };
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            mediaList.push({ name: file.name, type: file.type, data: e.target.result });
+            mediaFilename.textContent = `📎 ${mediaList.length} anexo(s) pronto(s)`;
+            mediaPreview.style.display = "flex";
+          };
+          reader.readAsDataURL(file);
         }
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          mediaList.push({ name: file.name, type: file.type, data: e.target.result });
-          mediaFilename.textContent = `📎 ${mediaList.length} arquivo(s) selecionado(s)`;
-          mediaPreview.style.display = "flex";
-        };
-        reader.readAsDataURL(file);
       });
     }
 
@@ -728,6 +793,7 @@ ${extraMemory}`;
       }
     };
 
+    // Inicialização da interface e carregamento de mensagens
     updateHeader();
     renderChannels();
     renderChat();
