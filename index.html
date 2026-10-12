@@ -57,7 +57,7 @@
     .btn-del-msg { background: transparent; border: none; color: #F85149; font-size: 0.75rem; cursor: pointer; opacity: 0.75; }
     .btn-del-msg:hover { opacity: 1; }
 
-    /* Barra de Mídia Selecionada */
+    /* Pré-visualização de Anexos */
     #media-preview-container { display: none; padding: 6px 14px; background: var(--card); border-top: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--blue); }
     #btn-remove-media { background: transparent; border: none; color: #F85149; font-weight: bold; cursor: pointer; }
 
@@ -89,7 +89,7 @@
 </head>
 <body>
 
-  <!-- Menu de Canais -->
+  <!-- Menu Lateral de Canais -->
   <div id="drawer">
     <div class="drawer-content">
       <div class="drawer-header">Canais de Conversa</div>
@@ -173,7 +173,6 @@
       { id: "estudos", name: "7. Estudos" }
     ];
 
-    // Mapeamento modular de notas do GitHub por canal
     const CANAL_NOTAS_MAP = {
       "geral": ["01 - Atena/Identidade.md", "01 - Atena/Projeto Atena.md", "03 - Conversas/Personalidade de Danilo.md"],
       "convivencia": ["01 - Atena/Identidade.md", "01 - Atena/Matriz de Personalidade.md", "01 - Atena/Projeto de interação pró-ativa.md"],
@@ -184,7 +183,6 @@
       "estudos": ["03 - Conversas/Profissional.md", "03 - Conversas/Projeto Europa.md"]
     };
 
-    // Motor Afetivo Expandido com Matemática Viva
     let motorAfetivo = {
       estados: {
         analise_raphael: 0.35,
@@ -370,7 +368,6 @@ Diretriz: Integre essas nuances de forma orgânica. Você possui curiosidade gen
       renderChat();
     }
 
-    // Leitura das Notas do Repositório GitHub
     async function carregarContextoCanal(canalId) {
       if (!githubToken || !githubRepo) return "";
       const notasAlvo = CANAL_NOTAS_MAP[canalId] || CANAL_NOTAS_MAP["geral"];
@@ -475,7 +472,8 @@ ${contextoGit}
 [MEMÓRIA COMPLEMENTAR]:
 ${extraMemory}`;
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+        // Chamada oficial para a geração moderna recomendada pelo Google
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
         
         const response = await fetch(url, {
           method: "POST",
@@ -505,7 +503,6 @@ ${extraMemory}`;
       }
     }
 
-    // Gravação de Síntese Autônoma no GitHub
     async function salvarSinteseConversa() {
       if (!githubToken || !githubRepo || !apiKey) {
         alert("Configure o Token do GitHub, Repositório e Gemini Key no menu ⚙️ primeiro.");
@@ -531,7 +528,7 @@ ${extraMemory}`;
       });
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ contents: contents })
@@ -580,7 +577,6 @@ ${extraMemory}`;
       }
     }
 
-    // Drawer e Menus
     document.getElementById("btn-open-drawer").onclick = () => { drawer.style.display = "block"; };
     drawer.onclick = (e) => { if (e.target === drawer) drawer.style.display = "none"; };
 
@@ -620,7 +616,6 @@ ${extraMemory}`;
       mediaPreview.style.display = "none";
     };
 
-    // Configurações
     document.getElementById("btn-open-config").onclick = () => {
       document.getElementById("input-api-key").value = apiKey;
       document.getElementById("input-github-token").value = githubToken;
