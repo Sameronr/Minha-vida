@@ -190,14 +190,79 @@
       { id: "estudos", name: "7. Estudos" }
     ];
 
+    // =========================================================================
+    // 1. MAPEAMENTO DE NOTAS ESPECÍFICAS POR CANAL
+    // (Cada canal carrega apenas seus arquivos temáticos complementares)
+    // =========================================================================
     const CANAL_NOTAS_MAP = {
-      "geral": ["01 - Atena/Identidade.md", "01 - Atena/Projeto Atena.md", "03 - Conversas/Personalidade de Danilo.md"],
-      "convivencia": ["01 - Atena/Identidade.md", "01 - Atena/Matriz de Personalidade.md", "01 - Atena/Projeto de interação pró-ativa.md"],
-      "trabalho": ["03 - Conversas/Profissional.md", "03 - Conversas/A mudança.md", "03 - Conversas/Projeto Europa.md"],
-      "projetos": ["03 - Conversas/Projeto Viagens.md", "03 - Conversas/Projeto Europa.md"],
-      "diaadia": ["03 - Conversas/O dia a dia.md", "03 - Conversas/A mudança.md"],
-      "treinos": ["03 - Conversas/Projeto Calistenia.md"],
-      "estudos": ["03 - Conversas/Profissional.md", "03 - Conversas/Projeto Europa.md"]
+      "geral": [
+        "03 - Conversas/Personalidade de Danilo.md"
+      ],
+      "convivencia": [
+        "01 - Atena/Matriz de Personalidade.md", 
+        "01 - Atena/Interação Pró-ativa.md"
+      ],
+      "trabalho": [
+        "03 - Conversas/Profissional.md", 
+        "03 - Conversas/A mudança.md", 
+        "03 - Conversas/Projeto Europa.md"
+      ],
+      "projetos": [
+        "03 - Conversas/Projeto Viagens.md", 
+        "03 - Conversas/Projeto Europa.md"
+      ],
+      "diaadia": [
+        "03 - Conversas/O dia a dia.md", 
+        "03 - Conversas/A mudança.md"
+      ],
+      "treinos": [
+        "03 - Conversas/Projeto Calistenia.md"
+      ],
+      "estudos": [
+        "03 - Conversas/Profissional.md", 
+        "03 - Conversas/Projeto Europa.md"
+      ]
+    };
+
+    // =========================================================================
+    // 2. CARREGAMENTO DE CONTEXTO DO GITHUB COM IDENTIDADE UNIVERSAL
+    // (Garante que 'Identidade e Personalidade.md' seja a raiz de TODOS os canais)
+    // =========================================================================
+    async function carregarContextoCanal(canalId) {
+      if (!githubToken || !githubRepo) return "";
+      
+      // Arquivo fundamental: lido obrigatoriamente em qualquer canal ativo
+      const notasFundamentais = ["01 - Atena/Identidade e Personalidade.md"];
+      
+      // Arquivos complementares específicos do canal selecionado
+      const notasEspecificas = CANAL_NOTAS_MAP[canalId] || CANAL_NOTAS_MAP["geral"];
+      
+      // Combina a raiz de personalidade com as notas temáticas
+      const todasAsNotas = [...notasFundamentais, ...notasEspecificas];
+
+      let contextoAcumulado = "";
+
+      for (const caminho of todasAsNotas) {
+        // Se a nota já foi lida nesta sessão, usa o cache da memória
+        if (cacheMemoriaGit[caminho]) {
+          contextoAcumulado += `\n\n--- [NOTA: ${caminho}] ---\n${cacheMemoriaGit[caminho]}`;
+          continue;
+        }
+        try {
+          const res = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${encodeURIComponent(caminho)}`, {
+            headers: { 'Authorization': `Bearer ${githubToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const conteudo = decodeURIComponent(escape(atob(data.content)));
+            cacheMemoriaGit[caminho] = conteudo;
+            contextoAcumulado += `\n\n--- [NOTA: ${caminho}] ---\n${conteudo}`;
+          }
+        } catch (e) {
+          console.warn("Aviso ao ler nota:", caminho);
+        }
+      }
+      return contextoAcumulado;
     };
 
     let motorAfetivo = {
