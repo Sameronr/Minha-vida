@@ -4,19 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Dashboard</title>
-  <meta name="theme-color" content="#0D1117">
+  <meta name="theme-color" content="#0D1317">
   <style>
     :root {
-      --bg: #0D1117;
-      --card: #161B22;
-      --border: #30363D;
-      --text: #E6EDF3;
-      --subtext: #8B949E;
-      --accent: #238636;
-      --accent-hover: #2EA043;
-      --blue: #58A6FF;
-      --user-msg: #238636;
-      --atena-msg: #161B22;
+      /* Fundo geral e cartões estruturais */
+      --bg: #0d1317;              /* Grafite petróleo profundo */
+      --card: #151f24;            /* Ardósia noturna */
+      --border: #23353d;          /* Borda sutil de aço escuro */
+      
+      /* Tipografia e Leitura */
+      --text: #e6edf3;            /* Texto principal limpo */
+      --subtext: #8fa3ad;         /* Texto secundário acinzentado */
+      
+      /* Acentos e Identidade Atena */
+      --accent: #254552;          /* O nosso azul-petróleo escuro */
+      --accent-hover: #315869;    /* Petróleo iluminado para interação */
+      --gold: #c29b38;            /* Bronze/Dourado envelhecido (pontos focais) */
+      --ivory: #eadec0;           /* Marfim suave (títulos e detalhes orgânicos) */
+      
+      /* Balões de Conversa */
+      --user-msg: #254552;        /* Balão do Dani no azul-petróleo sólido */
+      --atena-msg: #172228;       /* Balão da Atena integrado à ardósia do fundo */
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
@@ -24,22 +32,22 @@
     /* Barra Superior */
     header { background-color: var(--card); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
     .header-left { display: flex; align-items: center; gap: 10px; }
-    .btn-icon { background: transparent; border: none; color: #C9D1D9; font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
+    .btn-icon { background: transparent; border: none; color: var(--ivory); font-size: 1.2rem; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
     .header-titles { display: flex; flex-direction: column; }
-    .header-title { font-size: 0.95rem; font-weight: 700; color: #2EA043; letter-spacing: 0.5px; }
-    .header-channel { font-size: 0.75rem; color: #3FB950; display: flex; align-items: center; gap: 4px; }
+    .header-title { font-size: 0.95rem; font-weight: 700; color: var(--ivory); letter-spacing: 0.5px; }
+    .header-channel { font-size: 0.75rem; color: var(--gold); display: flex; align-items: center; gap: 4px; }
     .header-channel::before { content: "●"; font-size: 0.65rem; }
     .header-right { display: flex; align-items: center; gap: 8px; }
-    .btn-header-action { background: var(--card); border: 1px solid var(--border); color: #C9D1D9; padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; }
-    .btn-header-action:hover { background: #21262D; }
+    .btn-header-action { background: var(--accent); border: 1px solid var(--border); color: var(--ivory); padding: 5px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-header-action:hover { background: var(--accent-hover); border-color: var(--gold); }
 
     /* Menu Lateral de Canais (Drawer) */
     #drawer { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; z-index: 200; }
     .drawer-content { background-color: var(--card); width: 280px; height: 100%; border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 18px 14px; }
-    .drawer-header { font-size: 1rem; font-weight: 700; color: #F0F6FC; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+    .drawer-header { font-size: 1rem; font-weight: 700; color: var(--ivory); padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
     .channel-list { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; }
-    .channel-item { padding: 11px 12px; border-radius: 8px; color: #C9D1D9; font-size: 0.88rem; cursor: pointer; transition: 0.15s; }
-    .channel-item:hover, .channel-item.active { background-color: #21262D; color: var(--blue); font-weight: 600; }
+    .channel-item { padding: 11px 12px; border-radius: 8px; color: var(--subtext); font-size: 0.88rem; cursor: pointer; transition: 0.15s; }
+    .channel-item:hover, .channel-item.active { background-color: var(--accent); color: var(--ivory); font-weight: 600; border-left: 3px solid var(--gold); }
 
     /* Janela de Conversa */
     #chat-box { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -48,7 +56,7 @@
     .msg-wrapper.atena { align-self: flex-start; }
     
     .msg { padding: 12px 14px; border-radius: 14px; font-size: 0.94rem; line-height: 1.45; word-wrap: break-word; white-space: pre-wrap; }
-    .msg-wrapper.user .msg { background-color: var(--user-msg); color: #FFFFFF; border-bottom-right-radius: 4px; }
+    .msg-wrapper.user .msg { background-color: var(--user-msg); color: #FFFFFF; border-bottom-right-radius: 4px; border: 1px solid var(--border); }
     .msg-wrapper.atena .msg { background-color: var(--atena-msg); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
     
     .media-grid { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
@@ -58,33 +66,42 @@
     .btn-del-msg:hover { opacity: 1; }
 
     /* Pré-visualização de Anexos */
-    #media-preview-container { display: none; padding: 6px 14px; background: var(--card); border-top: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--blue); }
+    #media-preview-container { display: none; padding: 6px 14px; background: var(--card); border-top: 1px solid var(--border); align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--gold); }
     #btn-remove-media { background: transparent; border: none; color: #F85149; font-weight: bold; cursor: pointer; }
 
     /* Entrada de Mensagem */
     footer { background-color: var(--card); border-top: 1px solid var(--border); padding: 8px 12px; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; position: relative; }
-    textarea { flex: 1; background-color: var(--bg); color: #F0F6FC; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 0.94rem; resize: none; max-height: 120px; outline: none; }
-    textarea:focus { border-color: var(--blue); }
+    textarea { flex: 1; background-color: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-size: 0.94rem; resize: none; max-height: 120px; outline: none; }
+    textarea:focus { border-color: var(--gold); }
     
-    .btn-circle { width: 42px; height: 42px; border-radius: 12px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.15rem; }
-    .btn-add { background-color: #21262D; color: #C9D1D9; border: 1px solid var(--border); }
-    .btn-send { background-color: var(--accent); color: #FFFFFF; font-weight: bold; }
-    .btn-send:disabled { background-color: #21262D; color: var(--subtext); }
+    /* Botões Principais Redesenhados com a Paleta */
+    button { background: var(--accent); color: var(--ivory); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    button:hover { background: var(--accent-hover); border-color: var(--gold); }
+    
+    .btn-circle { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 1.15rem; transition: 0.2s; }
+    .btn-add { background-color: var(--card); color: var(--ivory); }
+    .btn-add:hover { background-color: var(--accent); border-color: var(--gold); }
+    .btn-send { background-color: var(--accent); color: var(--ivory); font-weight: bold; }
+    .btn-send:hover { background-color: var(--accent-hover); border-color: var(--gold); }
+    .btn-send:disabled { background-color: var(--card); color: var(--subtext); border-color: var(--border); }
 
     /* Menu Flutuante de Mídia */
     #media-menu { display: none; position: absolute; bottom: 62px; left: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 6px; flex-direction: column; gap: 4px; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,0.6); }
-    .media-btn { background: transparent; border: none; color: #F0F6FC; padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; text-align: left; cursor: pointer; }
-    .media-btn:hover { background-color: #21262D; }
+    .media-btn { background: transparent; border: none; color: var(--text); padding: 8px 14px; border-radius: 6px; font-size: 0.85rem; text-align: left; cursor: pointer; }
+    .media-btn:hover { background-color: var(--accent); color: var(--ivory); }
 
     /* Modal de Configurações */
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); align-items: center; justify-content: center; padding: 16px; z-index: 300; }
     .modal-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; overflow-y: auto; }
-    .modal-card h3 { font-size: 1rem; color: var(--blue); }
+    .modal-card h3 { font-size: 1rem; color: var(--ivory); }
     .modal-card label { font-size: 0.8rem; color: var(--subtext); }
-    .modal-card input, .modal-card textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: #F0F6FC; padding: 10px; font-size: 0.85rem; outline: none; width: 100%; }
+    .modal-card input, .modal-card textarea { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px; font-size: 0.85rem; outline: none; width: 100%; }
+    .modal-card input:focus, .modal-card textarea:focus { border-color: var(--gold); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-    .btn-sec { background: #21262D; border: 1px solid var(--border); color: #C9D1D9; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
-    .btn-pri { background: var(--accent); border: none; color: #fff; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-sec { background: transparent; border: 1px solid var(--border); color: var(--subtext); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    .btn-sec:hover { background: var(--card); color: var(--text); }
+    .btn-pri { background: var(--accent); border: 1px solid var(--border); color: var(--ivory); padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .btn-pri:hover { background: var(--accent-hover); border-color: var(--gold); }
   </style>
 </head>
 <body>
